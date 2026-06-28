@@ -14,6 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const categoryFilters = document.querySelectorAll(".category-filter");
   const dayFilters = document.querySelectorAll(".day-filter");
   const timeFilters = document.querySelectorAll(".time-filter");
+  const themeToggle = document.getElementById("theme-toggle");
+  const themeToggleIcon = document.getElementById("theme-toggle-icon");
+  const themeToggleText = document.getElementById("theme-toggle-text");
 
   // Authentication elements
   const loginButton = document.getElementById("login-button");
@@ -40,6 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchQuery = "";
   let currentDay = "";
   let currentTimeRange = "";
+  let currentTheme = "light";
 
   // Authentication state
   let currentUser = null;
@@ -115,6 +119,47 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Set authentication class on body
     updateAuthBodyClass();
+  }
+
+  function updateThemeToggleContent(theme) {
+    if (!themeToggle || !themeToggleIcon || !themeToggleText) {
+      return;
+    }
+
+    if (theme === "dark") {
+      themeToggleIcon.textContent = "☀️";
+      themeToggleText.textContent = "Light Mode";
+      themeToggle.setAttribute("aria-label", "Switch to light mode");
+      themeToggle.setAttribute("aria-pressed", "true");
+    } else {
+      themeToggleIcon.textContent = "🌙";
+      themeToggleText.textContent = "Dark Mode";
+      themeToggle.setAttribute("aria-label", "Switch to dark mode");
+      themeToggle.setAttribute("aria-pressed", "false");
+    }
+  }
+
+  function applyTheme(theme, shouldPersist = true) {
+    currentTheme = theme === "dark" ? "dark" : "light";
+    document.body.classList.toggle("dark-mode", currentTheme === "dark");
+    updateThemeToggleContent(currentTheme);
+
+    if (shouldPersist) {
+      localStorage.setItem("theme", currentTheme);
+    }
+  }
+
+  function initializeTheme() {
+    const savedTheme = localStorage.getItem("theme");
+    const systemPrefersDark =
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+    if (savedTheme === "dark" || savedTheme === "light") {
+      applyTheme(savedTheme, false);
+    } else {
+      applyTheme(systemPrefersDark ? "dark" : "light", false);
+    }
   }
 
   // Validate user session with the server
@@ -253,6 +298,12 @@ document.addEventListener("DOMContentLoaded", () => {
     const password = document.getElementById("password").value;
     await login(username, password);
   });
+
+  if (themeToggle) {
+    themeToggle.addEventListener("click", () => {
+      applyTheme(currentTheme === "dark" ? "light" : "dark");
+    });
+  }
 
   // Show loading skeletons
   function showLoadingSkeletons() {
@@ -862,6 +913,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // Initialize app
+  initializeTheme();
   checkAuthentication();
   initializeFilters();
   fetchActivities();
