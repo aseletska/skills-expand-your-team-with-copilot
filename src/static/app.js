@@ -498,6 +498,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Format the schedule using the new helper function
     const formattedSchedule = formatSchedule(details);
+    const activityUrl = `${window.location.origin}${window.location.pathname}?activity=${encodeURIComponent(
+      name
+    )}`;
+    const shareMessage = `Check out this activity: ${name} at Mergington High School!`;
+    const xShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      shareMessage
+    )}&url=${encodeURIComponent(activityUrl)}`;
+    const whatsappShareUrl = `https://wa.me/?text=${encodeURIComponent(
+      `${shareMessage} ${activityUrl}`
+    )}`;
 
     // Create activity tag
     const tagHtml = `
@@ -569,6 +579,40 @@ document.addEventListener("DOMContentLoaded", () => {
         `
         }
       </div>
+      <div class="social-share-actions">
+        <button
+          type="button"
+          class="share-link-button share-native-button"
+          data-activity-name="${name}"
+          data-activity-url="${activityUrl}"
+        >
+          Share
+        </button>
+        <a
+          class="share-link-button share-social-button"
+          href="${xShareUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Share on X
+        </a>
+        <a
+          class="share-link-button share-social-button"
+          href="${whatsappShareUrl}"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Share on WhatsApp
+        </a>
+        <button
+          type="button"
+          class="share-link-button copy-link-button"
+          data-activity-name="${name}"
+          data-activity-url="${activityUrl}"
+        >
+          Copy Link
+        </button>
+      </div>
     `;
 
     // Add click handlers for delete buttons
@@ -587,7 +631,67 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    const nativeShareButton = activityCard.querySelector(".share-native-button");
+    nativeShareButton.addEventListener("click", async (event) => {
+      const shareUrl = event.currentTarget.dataset.activityUrl;
+      const activityName = event.currentTarget.dataset.activityName;
+      await shareActivity(activityName, shareUrl);
+    });
+
+    const copyLinkButton = activityCard.querySelector(".copy-link-button");
+    copyLinkButton.addEventListener("click", async (event) => {
+      const shareUrl = event.currentTarget.dataset.activityUrl;
+      await copyActivityLink(shareUrl, "Link copied. Share it with your friends!");
+    });
+
     activitiesList.appendChild(activityCard);
+  }
+
+  async function shareActivity(activityName, activityUrl) {
+    const shareData = {
+      title: `${activityName} - Mergington High School`,
+      text: `Check out this activity: ${activityName}`,
+      url: activityUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    await copyActivityLink(
+      activityUrl,
+      "Sharing is not available on this device, so the link was copied instead."
+    );
+  }
+
+  async function copyActivityLink(activityUrl, successMessage) {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(activityUrl);
+        showMessage(successMessage, "success");
+        return;
+      } catch (error) {
+        console.error("Clipboard write failed:", error);
+      }
+    }
+
+    const textArea = document.createElement("textarea");
+    textArea.value = activityUrl;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    document.execCommand("copy");
+    document.body.removeChild(textArea);
+    showMessage(successMessage, "success");
   }
 
   // Event listeners for search and filter
